@@ -1,0 +1,5 @@
+This directory contains code for the Kalman filter examples using the
+simple advective equation (exercises 33-40).  They can be run by
+starting matlab then typing
+rtsolve2
+at the matlab prompt.
