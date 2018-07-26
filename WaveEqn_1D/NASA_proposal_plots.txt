@@ -1,0 +1,56 @@
+if graph == 2
+    h1 = plot(x,v(round(60/dt),:),'Linewidth',1);
+    hold on;
+    h2 = plot(x,v(round(300/dt),:),'Linewidth',1);
+    hold on;
+    h3 = plot(x,v(round(900/dt),:),'Linewidth',1);
+    hold on;
+    h4 = plot(x,v(round(2275/dt),:),'Linewidth',1);
+    hold on;
+    h5 = plot(x(obs),0*obs,'o','Linewidth',2,'MarkerEdgeColor','k');
+    hold on;
+    h6 = plot(x,u((nx+1:2*nx),round(60/dt)),'--','Color','b');
+    hold on;
+    h7 = plot(x,u((nx+1:2*nx),round(300/dt)),'--','Color','r');
+    hold on;
+    h8 = plot(x,u((nx+1:2*nx),round(900/dt)),'--','Color','y');
+    hold on;
+    h9 = plot(x,u((nx+1:2*nx),round(2275/dt)),'--','Color','m');
+    handle = legend([h1,h2,h3,h4,h5],{'1min','5min','15min','35min','observations'});
+    set(handle,'FontSize',12);
+    set(gca,'fontsize',16);
+    xlabel('distance from coast (km)','FontSize',16);
+    ylabel('wave height (m)','FontSize',16);
+    title('Assimilated result vs. true solution','FontSize',16);
+    figure
+    plot(x,std(round(60/dt),:),'LineWidth',1);
+    hold on;
+    plot(x,std(round(300/dt),:),'LineWidth',1);
+    hold on;
+    plot(x,std(round(900/dt),:),'LineWidth',1);
+    hold on;
+    plot(x,std(round(2275/dt),:),'LineWidth',1);
+    hold on;
+    plot(x(obs),0*obs,'o','Linewidth',2,'MarkerEdgeColor','k');
+    handle = legend('1min','5min','15min','35min','observations');
+    set(handle,'FontSize',12);
+    set(gca,'fontsize',16);
+    xlabel('distance from coast (km)','FontSize',16);
+    ylabel('wave height (m)','FontSize',16);
+    title('Standard deviation','FontSize',16);
+end
+
+figure
+pressure = load('pressure_ssheight_yuyun.mat');
+p = pressure.uy110*9.81/1000;
+t = 1:1:length(p);
+plot(t,pressure.p110,'LineWidth',1);
+hold on;
+plot(t,p,'LineWidth',1);
+handle = legend('Actual pressure','Pressure assuming hydrostatic balance');
+set(handle,'FontSize',16);
+set(gca,'fontsize',16);
+xlabel('time (s)','FontSize',16);
+ylabel('Pressure (MPa)','FontSize',16);
+xlim([0,length(t)]);
+title('Nonhydrostatic vs hydrostatic pressure','FontSize',16);

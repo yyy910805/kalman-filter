@@ -1,0 +1,10 @@
+xmin = 0
+xmax = 249.5
+tmin = 0
+tmax = 3000
+dx = 0.5
+CFL = 0.5
+Ld = 10
+xsd = 0.1
+esd = 0.1
+freq = 20
