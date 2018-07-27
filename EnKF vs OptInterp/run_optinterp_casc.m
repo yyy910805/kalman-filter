@@ -6,133 +6,145 @@ analyzes the result in terms of:
  - accuracy of prediction
 %}
 
+%% get outputs
 addpath 'EnKF vs OptInterp'
 order = 4;
-step = 10; %(assimilate observations every 10 time steps)
-out = optinterp_cascadia('params.txt',order,step);
+assim_step = 10; % assimilate observations every x time steps
+fcst_step = 10; % forecast every x time steps
+out = optinterp_cascadia('params.txt',order,assim_step,fcst_step);
 
 h = out.real;
-x = out.x;
-t = out.t;
-obs = out.obs;
 all_res = out.all_res;
+obs = out.obs;
+x = out.x;
+dx = out.dx;
+t = out.t;
+dt = out.dt;
+assim_runs = out.assim_runs;
+fcst_runs = out.fcst_runs;
 
-% gives the dimension of all_res
-[nx,nt,runs] = size(all_res);
+nx = length(x);
+nt = length(t);
 
-% real prediction
-real = zeros(1,3);
-idx = find(h(1,:)>1,1);
-real(1) = t(idx);
+% real prediction of max wave height and its arrival time
+real_fcst = zeros(1,2);
 [val,idx] = max(h(1,:));
-real(2) = val;
-real(3) = t(idx);
-
-% we only need the runs before the max wave height reaches the coast
-% for plotting of max wave height
-%n = floor(idx/10);
-n = runs;
+real_fcst(1) = val;
+real_fcst(2) = t(idx);
 
 % array to store prediction results for the coast
-% col 1 = first time wave height > 1.5m
-% col 2 = max wave height
-% col 3 = arrival time of max wave height
-
-%
-pred = zeros(n,3);
-for i = 1:n
-    if isempty(find(all_res(1,:,i)>1,1)) == 1
-        idx = 0;
-    else
-       idx = find(all_res(1,:,i)>1,1);
-    end
-    pred(i,1) = idx;
+% col 1 = max wave height
+% col 2 = arrival time of max wave height
+pred = zeros(fcst_runs,2);
+for i = 1:fcst_runs
     [val,idx] = max(all_res(1,:,i));
-    pred(i,2) = val;
-    pred(i,3) = idx;
+    pred(i,1) = val;
+    pred(i,2) = idx;
 end
-%}
 
-% plot prediction over runs
-%{
-ax = 1:n;
+%% plot prediction over runs
+% plot only until the actual max wave hits the coast
+arrival_run = ceil(real_fcst(2)/dt/fcst_step) + 1;
+ax = (1:arrival_run)*dt*fcst_step;
 figure(1)
-plot(ax, pred(:,1))
+plot(ax, pred(1:arrival_run,1))
+ylim([0 3])
 hold on
-plot([1,n],[real(1),real(1)],'--')
-title('First time wave height > 1m')
+plot([1,arrival_run]*dt*fcst_step,[real_fcst(1),real_fcst(1)],'--')
+legend('Forecasted max wave height','True max wave height','Location','Best')
+xlabel('Time (s)')
+ylabel('Wave Height (m)')
+title('Forecasted vs. True Max Wave Height')
 hold off
 
 figure(2)
-plot(ax, pred(:,2))
+plot(ax, pred(1:arrival_run,2))
+ylim([0 1500])
 hold on
-plot([1,n],[real(2),real(2)],'--')
-title('Max wave height')
+plot([1,arrival_run]*dt*fcst_step,[real_fcst(2),real_fcst(2)],'--')
+legend('Forecasted max wave height arrival time',...
+       'True max wave height arrival time','Location','Best')
+xlabel('Time (s)')
+ylabel('Max Wave Height Arrival Time (s)')
+title('Forecasted vs. True Arrival Time of Max Wave Height')
 hold off
 
-figure(3)
-plot(ax, pred(:,3))
-hold on
-plot([1,n],[real(3),real(3)],'--')
-title('Arrival time of max wave height (s)')
-hold off
-%}
-
-% plot accuracy indicators over runs
-% true vs assimilated waveform after each assimilation (as the new initial
-% waveform)
+%% plot accuracy indicators over runs
+% true vs assimilated waveform before each forecast
 % over the entire grid, or at observation stations
-K = zeros(1,runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,runs);  % std (kappa<1.4 is good)
-N = length(obs);
-for i = 1:runs
+K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
+kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
+N = nx;  % over the entire grid
+%N = length(obs);  % at observation stations
+
+for i = 1:fcst_runs
     s = 0;
     std = 0;
     for j = 1:N
-        % s = s + log(abs(h(j,i*step)/all_res(j,i*step,i)));
-        s = s + log(abs(h(obs(j),i*step)/all_res(obs(j),i*step,i)));
+        s = s + log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i)));
+        % s = s + log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i)));
     end
     K(i) = exp(s/N);
     for j = 1:N
-        % std = std + (log(abs(h(j,i*step)/all_res(j,i*step,i))))^2 - (s/N)^2;
-        std = std + (log(abs(h(obs(j),i*step)/all_res(obs(j),i*step,i))))^2 - ...
-              (s/N)^2;
+        std = std + (log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i))))^2 - (s/N)^2;
+        %std = std + (log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i))))^2 - (s/N)^2;
     end
     kappa(i) = exp(sqrt(std/N));
 end
-ax = 1:runs;
-figure
+ax = (1:fcst_runs)*dt*fcst_step;
+figure(3)
 plot(ax,K)
 hold on
 plot(ax,kappa)
 hold on
-plot([1,runs],[1,1],'--')
+plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
-title('Accuracy of Optimal Interpolation (at stations)')
+xlabel('Time (s)')
+title('Accuracy of Optimal Interpolation (across grid)')
 
-% only plotting accuracy at the coast
-% averaging over all time steps at each run (assimilation and propagation)
-K = zeros(1,runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,runs);  % std (kappa<1.4 is good)
-for i = 1:runs
+% plotting accuracy at the coast for each forecast run
+K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
+kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
+for i = 1:fcst_runs
     s = 0;
     std = 0;
-    N = nt - i*step + 1;
-    for j = i*step:nt
+    N = nt - i*fcst_step + 1;
+    for j = i*fcst_step:nt
         s = s + log(abs(h(1,j)/all_res(1,j,i)));
     end
     K(i) = exp(s/N);
-    for j = i*step:nt
-        std = std + (log(abs(h(1,j)/all_res(1,j,i))))^2;
+    for j = i*fcst_step:nt
+        std = std + (log(abs(h(1,j)/all_res(1,j,i))))^2 - (s/N)^2;
     end
-    kappa(i) = exp(sqrt(std/N - (s/N)^2));
+    kappa(i) = exp(sqrt(std/N));
 end
-ax = 1:runs;
-figure
+figure(4)
 plot(ax,K)
 hold on
 plot(ax,kappa)
 hold on
-plot([1,runs],[1,1],'--')
+plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
+xlabel('Time (s)')
 title('Accuracy of Optimal Interpolation (at coast)')
+hold off
+
+%% Analyze assimilation at stations
+%{
+assimilation = zeros(nx,assim_runs);
+initial = h(:,1:assim_runs);
+figure(5)
+for i = 1:assim_runs
+    assimilation(:,i) = all_res(:,i*assim_step,i);
+    plot(x,assimilation(:,i),'r',x,initial(:,i),'b')
+    drawnow
+end
+diff = zeros(length(obs),asssim_runs);
+figure(6)
+for i = 1:runs
+    diff(:,i) = assimilation(obs,i) - initial(obs,i);
+    plot(x_obs,diff(:,i))
+    ylim([-0.5,0.5])
+    drawnow
+end
+%}

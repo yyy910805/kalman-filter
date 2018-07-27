@@ -2,14 +2,16 @@
 % obtains all assimilation -> propagation results for Cascadia
 % Ensemble Kalman filter
 
-function out = optinterp_cascadia(filename, order, step)
+function out = optinterp_cascadia(filename, order, assim_step, fcst_step)
 %{
 @param filename: name of file that contains parameters
 @param order: order of SBP operator
-@param step: interval of assimilation run (e.g. step=10 if we assimilate
-             every 10*dt)
+@param assim_step: interval of assimilation run (e.g. assim_step=10 if we 
+                   assimilate every 10*dt)
+@param fcst_step: interval of forecast run (e.g. fcst_step=100 if we
+                  forecast every 100*dt)
 @return out: true solution, x, t, observation points, assimilated result 
-             matrix (nx by nt by runs)
+             matrix (nx by nt by runs), and evolution of standard deviation
 %}
 
 %%
@@ -28,11 +30,11 @@ t = tmin:dt:tmax;
 nx = length(x);
 nt = length(t);
 
-% value of max wave height at coast, and arrival time index
-[val,idx] = max(u(nx+1,:));
-% only run assimilation up to when the highest wave arrives
-%runs = ceil(idx/step);
-runs = floor(nt/step) - 1;
+% number of assimilations to do
+assim_runs = floor(nt/assim_step) - 1;
+
+% number of forecasts to do
+fcst_runs = floor(nt/fcst_step) - 1;
 
 %%
 %{
@@ -60,35 +62,41 @@ K = P*H'*pinv(H*P*H' + R);
 h0 = zeros(nx,1);
 q0 = zeros(nx,1);
 
-% all assimilation run results
-all_res = zeros(nx,nt,runs);
+% all forecast run results
+all_res = zeros(nx,nt,fcst_runs);
 
 % initial condition
 X = [q0;h0];
     
 % assimilation for all runs
 tic
-for i = 1:runs
-    % create vector v to store assimilation result for current assimilation
-    v = zeros(2*nx,nt);
-    
+for i = 1:assim_runs
     % propagate this number of steps
-    for k = 1:step
+    for k = 1:assim_step
         X = T*X;
     end
+    q = X(1:nx);
     h = X(1+nx:2*nx);
 
     % update 
-    h = h + K*(z(:,i*step+1) - H*h);
+    h = h + K*(z(:,i*assim_step+1) - H*h);
     X(1+nx:2*nx) = h;
-    v(1+nx:2*nx,i*step) = h;
-    % propagate and save
-    for j = i*step+1:nt
-        v(:,j) = T*v(:,j-1);
-    end
-    % only save the wave height in final result
-    all_res(:,:,i) = v(nx+1:2*nx,:);
     
+    if mod(i*assim_step,fcst_step) == 0
+        % rth forecast run
+        r = i*assim_step/fcst_step;
+        % create vector v to store current forecast result
+        v = zeros(2*nx,nt);
+        % the updated result becomes the initial condition
+        v(1:nx,i*assim_step) = q;
+        v(1+nx:2*nx,i*assim_step) = h;
+    
+        % propagate and save
+        for j = i*assim_step+1:nt
+            v(:,j) = T*v(:,j-1);
+        end
+        all_res(:,:,r) = v(nx+1:2*nx,:);
+    end
 end
 toc
 
@@ -97,5 +105,9 @@ out.real = u(nx+1:2*nx,:);
 out.all_res = all_res;
 out.obs = obs;
 out.x = x;
+out.dx = dx;
 out.t = t;
+out.dt = dt;
+out.assim_runs = assim_runs;
+out.fcst_runs = fcst_runs;
 end

@@ -44,20 +44,29 @@ for i = 1:fcst_runs
 end
 
 %% plot prediction over forecasts
-ax = 1:fcst_runs;
+arrival_run = ceil(real_fcst(2)/dt/fcst_step) + 1;
+ax = (1:arrival_run)*dt*fcst_step;
 figure(1)
-plot(ax, pred(:,1))
+plot(ax, pred(1:arrival_run,1))
 ylim([0 3])
 hold on
-plot([1,fcst_runs],[real_fcst(1),real_fcst(1)],'--')
-title('Max wave height')
+plot([1,arrival_run]*dt*fcst_step,[real_fcst(1),real_fcst(1)],'--')
+legend('Forecasted max wave height','True max wave height','Location','Best')
+xlabel('Time (s)')
+ylabel('Wave Height (m)')
+title('Forecasted vs. True Max Wave Height')
 hold off
 
 figure(2)
-plot(ax, pred(:,2))
+plot(ax, pred(1:arrival_run,2))
+ylim([0 1500])
 hold on
-plot([1,fcst_runs],[real_fcst(2),real_fcst(2)],'--')
-title('Arrival time of max wave height (s)')
+plot([1,arrival_run]*dt*fcst_step,[real_fcst(2),real_fcst(2)],'--')
+legend('Forecasted max wave height arrival time',...
+       'True max wave height arrival time','Location','Best')
+xlabel('Time (s)')
+ylabel('Max Wave Height Arrival Time (s)')
+title('Forecasted vs. True Arrival Time of Max Wave Height')
 hold off
 
 %% plot accuracy indicators over runs
@@ -65,7 +74,9 @@ hold off
 % over the entire grid, or at observation stations
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
 kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
-N = length(obs);
+N = nx;  % over the entire grid
+%N = length(obs);  % at observation stations
+
 for i = 1:fcst_runs
     s = 0;
     std = 0;
@@ -80,15 +91,16 @@ for i = 1:fcst_runs
     end
     kappa(i) = exp(sqrt(std/N));
 end
-ax = 1:fcst_runs;
+ax = (1:fcst_runs)*dt*fcst_step;
 figure(3)
 plot(ax,K)
 hold on
 plot(ax,kappa)
 hold on
-plot([1,fcst_runs],[1,1],'--')
+plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
-title('Accuracy of Ensemble Kalman Filter')
+xlabel('Time (s)')
+title('Accuracy of Ensemble Kalman Filter (across grid)')
 
 % plotting accuracy at the coast for each forecast run
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
@@ -106,14 +118,14 @@ for i = 1:fcst_runs
     end
     kappa(i) = exp(sqrt(std/N));
 end
-ax = 1:fcst_runs;
 figure(4)
 plot(ax,K)
 hold on
 plot(ax,kappa)
 hold on
-plot([1,fcst_runs],[1,1],'--')
+plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
+xlabel('Time (s)')
 title('Accuracy of Ensemble Kalman Filter (at coast)')
 hold off
 
@@ -147,7 +159,11 @@ hold on
 plot(x,stdev(60,:))
 hold on
 plot(x,stdev(90,:))
-% convert runs to time (*assim_step*dt)
-legend('5 runs','20 runs','40 runs','60 runs','90 runs')
+% convert runs to time, round to nearest 10
+ts = roundn([5 20 40 60 90]*assim_step*dt,1);
+legend([num2str(ts(1)) 's'],[num2str(ts(2)) 's'],[num2str(ts(3)) 's'],...
+       [num2str(ts(4)) 's'],[num2str(ts(5)) 's'])
+xlabel('Distance from Coast (km)')
+ylabel('Standard Deviation')
 title('Evolution of Standard Deviation across the Grid')
 hold off
