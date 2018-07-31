@@ -61,6 +61,7 @@ all_res = zeros(nx,nt,fcst_runs);
 
 % FIXME: intial guess for wave height (need pressure time seris)
 N = 100;
+assim = zeros(2*nx,N);  % ensemble before the 10th forecast
 mu = zeros(1,nx);
 mu_h = zeros(1,nx);
 mu_q = zeros(nx,1);
@@ -77,7 +78,6 @@ for i = 1:assim_runs
     % propagate this number of steps
     for k = 1:assim_step
         X = T*X;
-        % v(1+nx:2*nx,(runs-1)*step+k) = mean(X(1+nx:2*nx,:),2)';
     end
     q = X(1:nx,:);
     h = X(1+nx:2*nx,:);
@@ -94,6 +94,10 @@ for i = 1:assim_runs
     if mod(i*assim_step,fcst_step) == 0
         % rth forecast run
         r = i*assim_step/fcst_step;
+        if r == 10
+            assim(1:nx,:) = X(1:nx,:);
+            assim(nx+1:2*nx,:) = X(nx+1:2*nx,:);
+        end
         % create vector v to store current forecast result
         v = zeros(2*nx,nt);
         % the updated result becomes the initial condition
@@ -120,4 +124,6 @@ out.t = t;
 out.dt = dt;
 out.assim_runs = assim_runs;
 out.fcst_runs = fcst_runs;
+out.assim = assim;
+out.T = T;
 end

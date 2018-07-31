@@ -9,8 +9,8 @@ analyzes the result in terms of:
 %% get outputs
 addpath 'EnKF vs OptInterp'
 order = 4;
-assim_step = 10; % assimilate observations every x time steps
-fcst_step = 10; % forecast every x time steps
+assim_step = 1; % assimilate observations every x time steps
+fcst_step = 20; % forecast every x time steps
 out = optinterp_cascadia('params.txt',order,assim_step,fcst_step);
 
 h = out.real;
@@ -48,7 +48,7 @@ arrival_run = ceil(real_fcst(2)/dt/fcst_step) + 1;
 ax = (1:arrival_run)*dt*fcst_step;
 figure(1)
 plot(ax, pred(1:arrival_run,1))
-ylim([0 3])
+ylim([0 3.5])
 hold on
 plot([1,arrival_run]*dt*fcst_step,[real_fcst(1),real_fcst(1)],'--')
 legend('Forecasted max wave height','True max wave height','Location','Best')
