@@ -15,16 +15,13 @@ function out = enkf_cascadia(filename, order, assim_step, fcst_step)
 %}
 
 %%
-% read paramaters from
-% file------------------------------------------------------------------------------------------------------------------------------
+% read paramaters from file
 [xmin, xmax, tmin, tmax, dx, ~, Ld, xsd, esd, freq] = readParams(filename);
 
 % first get the true solution, for comparison purpose later
 % u stores true solution (2*nx by nt)
 % T is the propagation matrix
 [u, dt, T] = wave_solve_unstagg(filename, order, 0);
-%lambda = 20;
-%[u, dt, T] = wave_solve_sine(filename, lambda, order, 0);
 
 % set up the grid
 x = xmin:dx:xmax;
@@ -104,10 +101,10 @@ for i = 1:assim_runs
         % propagate and save
         for j = i*assim_step+1:nt
             v(:,j) = T*v(:,j-1);
-            all_res(:,j,r) = v(nx+1:2*nx,j);
         end
+        all_res(:,i*assim_step:nt,r) = v(nx+1:2*nx,i*assim_step:nt);
         if r > 1
-            all_res(:,1:i*assim_step,r) = all_res(:,1:i*assim_step,r-1);
+            all_res(:,1:i*assim_step-1,r) = all_res(:,1:i*assim_step-1,r-1);
         end
     end
 end

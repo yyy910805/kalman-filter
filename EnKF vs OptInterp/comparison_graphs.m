@@ -9,7 +9,6 @@ and optimal interpolation, does comparison
 %}
 
 %% get outputs
-addpath 'kalman-filter/EnKF vs OptInterp'
 order = 4;
 assim_step = 10; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
@@ -161,7 +160,7 @@ new_yticks = [char(a),pct];
 set(gca,'yticklabel',new_yticks)
 
 %% plot waveform at the fth forecast
-f = 20;
+f = 15;
 [nx,nt,runs] = size(all_res1);
 step = nt/(runs + 1);
 enkf = all_res1(:,:,f);

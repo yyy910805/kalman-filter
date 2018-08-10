@@ -1,6 +1,6 @@
 % unstaggered grid
 % obtains all assimilation -> propagation results for Cascadia
-% Ensemble Kalman filter
+% Optimal Interpolation
 
 function out = optinterp_cascadia(filename, order, assim_step, fcst_step)
 %{
@@ -58,9 +58,8 @@ P = xsd^2*gaussian(nx, dx, Ld); % Gaussian covariance matrix
 K = P*H'*pinv(H*P*H' + R);
 
 % FIXME: intial guess for wave height (need pressure time seris)
-%mu_h = zeros(1,nx);
-%h0 = mvnrnd(mu_h,P,1)';
-h0 = zeros(nx,1);
+mu_h = zeros(1,nx);
+h0 = mvnrnd(mu_h,P,1)';
 q0 = zeros(nx,1);
 
 % all forecast run results

@@ -4,6 +4,7 @@ analyzes the result in terms of:
  - first time the tsunami wave hits the coast
  - max height of tsunami and its arrival time at the coast
  - accuracy of prediction
+ - waveform at the fth forecast
 %}
 
 %% get outputs
@@ -127,9 +128,8 @@ set(gca,'yticklabel',new_yticks)
 
 %% plot waveform at the fth forecast
 figure(8)
-f = 20;
+f = 10;
 [nx,nt,runs] = size(all_res);
-step = nt/(runs + 1);
 opt = all_res(:,:,f);
 p = pcolor(x,t,opt');
 set(p,'LineStyle','none');
