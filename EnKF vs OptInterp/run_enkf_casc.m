@@ -7,9 +7,8 @@ analyzes the result in terms of:
 %}
 
 %% get outputs
-addpath 'EnKF vs OptInterp'
 order = 4;
-assim_step = 5; % assimilate observations every x time steps
+assim_step = 10; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
 out = enkf_cascadia('params.txt',order,assim_step,fcst_step);
 
@@ -23,8 +22,6 @@ t = out.t;
 dt = out.dt;
 assim_runs = out.assim_runs;
 fcst_runs = out.fcst_runs;
-assim = out.assim;
-T = out.T;
 
 nx = length(x);
 nt = length(t);
@@ -75,7 +72,7 @@ hold off
 % true vs assimilated waveform before each forecast
 % over the entire grid, or at observation stations
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
+%kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
 N = nx;  % over the entire grid
 %N = length(obs);  % at observation stations
 
@@ -86,27 +83,40 @@ for i = 1:fcst_runs
         s = s + log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i)));
         % s = s + log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i)));
     end
-    K(i) = exp(s/N);
+    if exp(s/N) < 1
+        K(i) = exp(s/N);
+    else
+        K(i) = 1/exp(s/N);
+    end
+    %{
     for j = 1:N
         std = std + (log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i))))^2 - (s/N)^2;
         %std = std + (log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i))))^2 - (s/N)^2;
     end
     kappa(i) = exp(sqrt(std/N));
+    %}
 end
 ax = (1:fcst_runs)*dt*fcst_step;
 figure(3)
 plot(ax,K)
+%{
 hold on
 plot(ax,kappa)
 hold on
 plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
+%}
 xlabel('Time (s)')
 title('Accuracy of Ensemble Kalman Filter (across grid)')
+% Convert y-axis values to percentage values
+a = cellstr(num2str(get(gca,'ytick')'*100)); 
+pct = char(ones(size(a,1),1)*'%'); 
+new_yticks = [char(a),pct];
+set(gca,'yticklabel',new_yticks)
 
 % plotting accuracy at the coast for each forecast run
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
+%kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
 for i = 1:fcst_runs
     s = 0;
     std = 0;
@@ -114,58 +124,75 @@ for i = 1:fcst_runs
     for j = i*fcst_step:nt
         s = s + log(abs(h(1,j)/all_res(1,j,i)));
     end
-    K(i) = exp(s/N);
+    if exp(s/N) < 1
+        K(i) = exp(s/N);
+    else
+        K(i) = 1/exp(s/N);
+    end
+    %{
     for j = i*fcst_step:nt
         std = std + (log(abs(h(1,j)/all_res(1,j,i))))^2 - (s/N)^2;
     end
     kappa(i) = exp(sqrt(std/N));
+    %}
 end
 figure(4)
 plot(ax,K)
+%{
 hold on
 plot(ax,kappa)
 hold on
 plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
 legend('K','kappa')
+%}
 xlabel('Time (s)')
 title('Accuracy of Ensemble Kalman Filter (at coast)')
-hold off
+a = cellstr(num2str(get(gca,'ytick')'*100)); 
+pct = char(ones(size(a,1),1)*'%'); 
+new_yticks = [char(a),pct];
+set(gca,'yticklabel',new_yticks)
 
-%% Analyze assimilation at stations
-%{
-assimilation = zeros(nx,assim_runs);
-initial = h(:,1:assim_runs);
-figure(5)
-for i = 1:assim_runs
-    assimilation(:,i) = all_res(:,i*assim_step,i);
-    plot(x,assimilation(:,i),'r',x,initial(:,i),'b')
-    drawnow
-end
-diff = zeros(length(obs),asssim_runs);
-figure(6)
-for i = 1:runs
-    diff(:,i) = assimilation(obs,i) - initial(obs,i);
-    plot(x_obs,diff(:,i))
-    ylim([-0.5,0.5])
-    drawnow
-end
-%}
 %% plot standard deviation evolution
 figure(7)
-plot(x,stdev(5,:))
-hold on
-plot(x,stdev(20,:))
-hold on
-plot(x,stdev(40,:))
-hold on
-plot(x,stdev(60,:))
-hold on
-plot(x,stdev(90,:))
+t1 = round(60/dt/assim_step);
+t2 = round(300/dt/assim_step);
+t3 = round(900/dt/assim_step);
+t4 = round(1800/dt/assim_step);
+t5 = round(2700/dt/assim_step);
 % convert runs to time, round to nearest 10
-ts = roundn([5 20 40 60 90]*assim_step*dt,1);
+ts = roundn([t1 t2 t3 t4 t5]*assim_step*dt,1);
+plot(x,stdev(t1,:))
+hold on
+plot(x,stdev(t2,:))
+hold on
+plot(x,stdev(t3,:))
+hold on
+plot(x,stdev(t4,:))
+hold on
+plot(x,stdev(t5,:))
 legend([num2str(ts(1)) 's'],[num2str(ts(2)) 's'],[num2str(ts(3)) 's'],...
        [num2str(ts(4)) 's'],[num2str(ts(5)) 's'])
 xlabel('Distance from Coast (km)')
 ylabel('Standard Deviation')
-title('Evolution of Standard Deviation across the Grid')
+title('EnKF Evolution of Standard Deviation across the Grid')
+hold off
+
+%% plot waveform at the fth forecast
+figure(8)
+f = 20;
+[nx,nt,runs] = size(all_res);
+step = nt/(runs + 1);
+enkf = all_res(:,:,f);
+%t_new = t(f*step:end);
+%p = pcolor(x,t_new,enkf(:,f*step:end)');
+p = pcolor(x,t,enkf');
+set(p,'LineStyle','none');
+cmap();
+xlabel('Distance from the Coast (km)');
+ylabel('Time (s)');
+title('Space-Time Plot of EnKF Tsunami Wave Height (m)');
+colorbar
+caxis([-3 3])
+hold on
+plot([x(1),x(end)],[f*dt*fcst_step,f*dt*fcst_step],'k--')
 hold off

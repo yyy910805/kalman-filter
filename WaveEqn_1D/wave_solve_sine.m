@@ -20,13 +20,13 @@ final plots
 % set up initial wave height and ocean depth on the grid
 x = xmin:dx:xmax;
 nx = length(x);
-y = ones(nx,1)*2; % sea floor depth [km]
-h = @(s) sin(2*pi/lambda*s).*(s >= (xmax-lambda)/2 & s <= (xmax+lambda)/2); % initial wave height
+y = ones(nx,1)*10; % sea floor depth [km]
+h = @(s) sin(2*pi/lambda*(xmax/2-s)).*(s >= (xmax-lambda)/2 & s <= (xmax+lambda)/2); % initial wave height
 h0 = h(x)';
 
 %%
 % struct to store some essential variables
-M.g = 10e-3; % [km/s^2]
+M.g = 9.8e-3; % [km/s^2]
 M.H = y; % water depth [km]
 M.c = sqrt(M.g*M.H); % wave velocity [km/s]
 
@@ -53,7 +53,7 @@ T = sparse(T);
 for i = 2:nt 
     u(:,i) = T*u(:,i-1);
     if graph == 1
-        plot(x,u(1+nx:2*nx,i));
+        plot(x,u(1+nx:2*nx,i-1));
         drawnow
     end
 end

@@ -15,14 +15,16 @@ function out = enkf_cascadia(filename, order, assim_step, fcst_step)
 %}
 
 %%
-addpath WaveEqn_1D
-% read paramaters from file
+% read paramaters from
+% file------------------------------------------------------------------------------------------------------------------------------
 [xmin, xmax, tmin, tmax, dx, ~, Ld, xsd, esd, freq] = readParams(filename);
 
 % first get the true solution, for comparison purpose later
 % u stores true solution (2*nx by nt)
 % T is the propagation matrix
 [u, dt, T] = wave_solve_unstagg(filename, order, 0);
+%lambda = 20;
+%[u, dt, T] = wave_solve_sine(filename, lambda, order, 0);
 
 % set up the grid
 x = xmin:dx:xmax;
@@ -61,7 +63,6 @@ all_res = zeros(nx,nt,fcst_runs);
 
 % FIXME: intial guess for wave height (need pressure time seris)
 N = 100;
-assim = zeros(2*nx,N);  % ensemble before the 10th forecast
 mu = zeros(1,nx);
 mu_h = zeros(1,nx);
 mu_q = zeros(nx,1);
@@ -93,11 +94,7 @@ for i = 1:assim_runs
     
     if mod(i*assim_step,fcst_step) == 0
         % rth forecast run
-        r = i*assim_step/fcst_step;
-        if r == 10
-            assim(1:nx,:) = X(1:nx,:);
-            assim(nx+1:2*nx,:) = X(nx+1:2*nx,:);
-        end
+        r = i*assim_step/fcst_step;   
         % create vector v to store current forecast result
         v = zeros(2*nx,nt);
         % the updated result becomes the initial condition
@@ -107,8 +104,11 @@ for i = 1:assim_runs
         % propagate and save
         for j = i*assim_step+1:nt
             v(:,j) = T*v(:,j-1);
+            all_res(:,j,r) = v(nx+1:2*nx,j);
         end
-        all_res(:,:,r) = v(nx+1:2*nx,:);
+        if r > 1
+            all_res(:,1:i*assim_step,r) = all_res(:,1:i*assim_step,r-1);
+        end
     end
 end
 toc
@@ -124,6 +124,4 @@ out.t = t;
 out.dt = dt;
 out.assim_runs = assim_runs;
 out.fcst_runs = fcst_runs;
-out.assim = assim;
-out.T = T;
 end

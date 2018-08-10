@@ -7,9 +7,8 @@ analyzes the result in terms of:
 %}
 
 %% get outputs
-addpath 'EnKF vs OptInterp'
 order = 4;
-assim_step = 1; % assimilate observations every x time steps
+assim_step = 10; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
 out = optinterp_cascadia('params.txt',order,assim_step,fcst_step);
 
@@ -73,7 +72,6 @@ hold off
 % true vs assimilated waveform before each forecast
 % over the entire grid, or at observation stations
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
 N = nx;  % over the entire grid
 %N = length(obs);  % at observation stations
 
@@ -84,27 +82,26 @@ for i = 1:fcst_runs
         s = s + log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i)));
         % s = s + log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i)));
     end
-    K(i) = exp(s/N);
-    for j = 1:N
-        std = std + (log(abs(h(j,i*fcst_step)/all_res(j,i*fcst_step,i))))^2 - (s/N)^2;
-        %std = std + (log(abs(h(obs(j),i*fcst_step)/all_res(obs(j),i*fcst_step,i))))^2 - (s/N)^2;
+    if exp(s/N) < 1
+        K(i) = exp(s/N);
+    else
+        K(i) = 1/exp(s/N);
     end
-    kappa(i) = exp(sqrt(std/N));
 end
 ax = (1:fcst_runs)*dt*fcst_step;
 figure(3)
 plot(ax,K)
-hold on
-plot(ax,kappa)
-hold on
-plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
-legend('K','kappa')
 xlabel('Time (s)')
 title('Accuracy of Optimal Interpolation (across grid)')
+ylim([0 1])
+% Convert y-axis values to percentage values
+a = cellstr(num2str(get(gca,'ytick')'*100)); 
+pct = char(ones(size(a,1),1)*'%'); 
+new_yticks = [char(a),pct];
+set(gca,'yticklabel',new_yticks)
 
 % plotting accuracy at the coast for each forecast run
 K = zeros(1,fcst_runs);  % mean (0.8<K<1.2 is good)
-kappa = zeros(1,fcst_runs);  % std (kappa<1.4 is good)
 for i = 1:fcst_runs
     s = 0;
     std = 0;
@@ -112,39 +109,36 @@ for i = 1:fcst_runs
     for j = i*fcst_step:nt
         s = s + log(abs(h(1,j)/all_res(1,j,i)));
     end
-    K(i) = exp(s/N);
-    for j = i*fcst_step:nt
-        std = std + (log(abs(h(1,j)/all_res(1,j,i))))^2 - (s/N)^2;
+    if exp(s/N) < 1
+        K(i) = exp(s/N);
+    else
+        K(i) = 1/exp(s/N);
     end
-    kappa(i) = exp(sqrt(std/N));
 end
 figure(4)
 plot(ax,K)
-hold on
-plot(ax,kappa)
-hold on
-plot([1,fcst_runs]*dt*fcst_step,[1,1],'--')
-legend('K','kappa')
 xlabel('Time (s)')
 title('Accuracy of Optimal Interpolation (at coast)')
-hold off
+ylim([0 1])
+a = cellstr(num2str(get(gca,'ytick')'*100)); 
+pct = char(ones(size(a,1),1)*'%'); 
+new_yticks = [char(a),pct];
+set(gca,'yticklabel',new_yticks)
 
-%% Analyze assimilation at stations
-%{
-assimilation = zeros(nx,assim_runs);
-initial = h(:,1:assim_runs);
-figure(5)
-for i = 1:assim_runs
-    assimilation(:,i) = all_res(:,i*assim_step,i);
-    plot(x,assimilation(:,i),'r',x,initial(:,i),'b')
-    drawnow
-end
-diff = zeros(length(obs),asssim_runs);
-figure(6)
-for i = 1:runs
-    diff(:,i) = assimilation(obs,i) - initial(obs,i);
-    plot(x_obs,diff(:,i))
-    ylim([-0.5,0.5])
-    drawnow
-end
-%}
+%% plot waveform at the fth forecast
+figure(8)
+f = 20;
+[nx,nt,runs] = size(all_res);
+step = nt/(runs + 1);
+opt = all_res(:,:,f);
+p = pcolor(x,t,opt');
+set(p,'LineStyle','none');
+cmap();
+xlabel('Distance from the Coast (km)');
+ylabel('Time (s)');
+title('Space-Time Plot of Optimal Interpolation Tsunami Wave Height (m)')
+colorbar
+caxis([-3 3])
+hold on
+plot([x(1),x(end)],[f*dt*fcst_step,f*dt*fcst_step],'k--')
+hold off

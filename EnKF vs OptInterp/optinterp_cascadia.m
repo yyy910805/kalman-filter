@@ -15,7 +15,6 @@ function out = optinterp_cascadia(filename, order, assim_step, fcst_step)
 %}
 
 %%
-addpath WaveEqn_1D
 % read paramaters from file
 [xmin, xmax, tmin, tmax, dx, ~, Ld, xsd, esd, freq] = readParams(filename);
 
@@ -59,6 +58,8 @@ P = xsd^2*gaussian(nx, dx, Ld); % Gaussian covariance matrix
 K = P*H'*pinv(H*P*H' + R);
 
 % FIXME: intial guess for wave height (need pressure time seris)
+%mu_h = zeros(1,nx);
+%h0 = mvnrnd(mu_h,P,1)';
 h0 = zeros(nx,1);
 q0 = zeros(nx,1);
 
@@ -94,8 +95,11 @@ for i = 1:assim_runs
         % propagate and save
         for j = i*assim_step+1:nt
             v(:,j) = T*v(:,j-1);
+        end 
+        all_res(:,i*assim_step:nt,r) = v(nx+1:2*nx,i*assim_step:nt);
+        if r > 1
+            all_res(:,1:i*assim_step-1,r) = all_res(:,1:i*assim_step-1,r-1);
         end
-        all_res(:,:,r) = v(nx+1:2*nx,:);
     end
 end
 toc
