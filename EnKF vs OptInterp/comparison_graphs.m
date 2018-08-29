@@ -9,8 +9,9 @@ and optimal interpolation, does comparison
 %}
 
 %% get outputs
+
 order = 4;
-assim_step = 10; % assimilate observations every x time steps
+assim_step = 2; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
 out1 = enkf_cascadia('params.txt',order,assim_step,fcst_step);
 out2 = optinterp_cascadia('params.txt',order,assim_step,fcst_step);
@@ -60,10 +61,9 @@ plot(ax, pred1(1:arrival_run,1), ax, pred2(1:arrival_run,1))
 ylim([0 3.5])
 hold on
 plot([1,arrival_run]*dt*fcst_step,[real_fcst(1),real_fcst(1)],'--')
-legend('EnKF','OptInterp','True Max Wave Height','Location','Best')
+legend('Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height','Location','Best')
 xlabel('Time (s)')
 ylabel('Wave Height (m)')
-title('EnKF vs. OptInterp Forecasted Max Wave Height')
 hold off
 
 figure(2)
@@ -71,10 +71,9 @@ plot(ax, pred1(1:arrival_run,2), ax, pred2(1:arrival_run,2))
 ylim([0 1500])
 hold on
 plot([1,arrival_run]*dt*fcst_step,[real_fcst(2),real_fcst(2)],'--')
-legend('EnKF','OptInterp','True Max Wave Height','Location','Best')
+legend('Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height Arrival Time','Location','Best')
 xlabel('Time (s)')
-ylabel('Max Wave Height Arrival Time (s)')
-title('EnKF vs. OptInterp Forecasted Max Wave Height Arrival Time')
+ylabel('Maximum Wave Height Arrival Time (s)')
 hold off
 
 %% plot accuracy indicators over runs
@@ -113,8 +112,8 @@ plot(ax, K1, '-+','MarkerSize',3)
 hold on
 plot(ax, K2, '-*','MarkerSize',4)
 xlabel('Time (s)')
-title('Accuracy of EnKF vs. OptInterp across the Grid')
-legend('EnKF','OptInterp')
+ylabel('Accuracy across Grid (%)')
+legend('Ensemble Kalman Filter','Optimal Interpolation','Location','Best')
 ylim([0 1])
 % Convert y-axis values to percentage values
 a = cellstr(num2str(get(gca,'ytick')'*100)); 
@@ -151,8 +150,8 @@ plot(ax, K1, '-+','MarkerSize',3)
 hold on
 plot(ax, K2, '-*','MarkerSize',4)
 xlabel('Time (s)')
-title('Accuracy of EnKF vs. OptInterp at the Coast')
-legend('EnKF','OptInterp')
+ylabel('Accuracy at Coast (%)')
+legend('Ensemble Kalman Filter','Optimal Interpolation')
 ylim([0 1])
 a = cellstr(num2str(get(gca,'ytick')'*100)); 
 pct = char(ones(size(a,1),1)*'%'); 
@@ -170,9 +169,8 @@ figure(5)
 p1 = pcolor(x,t,enkf');
 set(p1,'LineStyle','none');
 cmap();
-xlabel('Distance from the Coast (km)');
+xlabel('Distance from Coast (km)');
 ylabel('Time (s)');
-title('Space-Time Plot of EnKF Tsunami Wave Height Forecast at 600s (m)')
 colorbar
 caxis([-3 3])
 hold on
@@ -183,9 +181,8 @@ figure(6)
 p2 = pcolor(x,t,opt');
 set(p2,'LineStyle','none');
 cmap();
-xlabel('Distance from the Coast (km)');
+xlabel('Distance from Coast (km)');
 ylabel('Time (s)');
-title('Space-Time Plot of OptInterp Tsunami Wave Height Forecast at 600s (m)')
 colorbar
 caxis([-3 3])
 hold on
@@ -213,6 +210,5 @@ plot(x,stdev(t5,:))
 legend([num2str(ts(1)) 's'],[num2str(ts(2)) 's'],[num2str(ts(3)) 's'],...
        [num2str(ts(4)) 's'],[num2str(ts(5)) 's'])
 xlabel('Distance from Coast (km)')
-ylabel('Standard Deviation')
-title('EnKF Evolution of Standard Deviation across the Grid')
+ylabel('Standard Deviation (m)')
 hold off
