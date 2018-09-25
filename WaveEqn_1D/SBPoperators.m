@@ -31,7 +31,7 @@ function [D,h,x,Hinv00,A,H] = SBPoperators(N,L,order)
     Q = 0.5*sparse(diag([-1;zeros(N-1,1);1])...
                    +diag(ones(N,1),1)-diag(ones(N,1),-1));
     
-    DD = buildAD(m,1);
+    % DD = buildAD(m,1);
     B = diag([1; ones(N,1)])/2;
     
    case 4
@@ -46,7 +46,7 @@ function [D,h,x,Hinv00,A,H] = SBPoperators(N,L,order)
                 1/12 -59/96 0 59/96; 1/32 0 -59/96 0];
     Q(N-2:N+1,N-2:N+1) = -rot90(Q(1:4,1:4),2);
     
-    DD = buildAD(m,2);
+    % DD = buildAD(m,2);
     
     B = diag(ones(N+1,1))/12;
     
@@ -104,7 +104,7 @@ function [D,h,x,Hinv00,A,H] = SBPoperators(N,L,order)
 
     Q(N-4:N+1,N-4:N+1) = -rot90(Q(1:6,1:6),2);
 
-    DD = buildAD(m,3);
+    % DD = buildAD(m,3);
     B = diag([1; ones(N,1)])/60;
     
    case 8
@@ -218,6 +218,7 @@ function [D,h,x,Hinv00,A,H] = SBPoperators(N,L,order)
   
   % sparse (should really construct these as sparse arrays)
   B = sparse(B);
+  A = sparse(N+1,N+1);
   
   if(order == 8)
       H = h*P;
@@ -227,7 +228,7 @@ function [D,h,x,Hinv00,A,H] = SBPoperators(N,L,order)
       D = spdiags(Pinv',0,N+1,N+1)*Q/h;
       Hinv00 = Pinv(1,1)/h;
 
-      A = -spdiags(Pinv',0,N+1,N+1)*transpose(DD)*B*DD;
+      % A = -spdiags(Pinv',0,N+1,N+1)*transpose(DD)*B*DD;
       H = h*spdiags(1./Pinv',0,m,m);
 
   end

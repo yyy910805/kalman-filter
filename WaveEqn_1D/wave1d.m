@@ -4,7 +4,7 @@
 % (H = water depth, u = water velocity)
 % unstaggered grid
 
-function out=wave1d(H,h00,N,order,plot_solution)
+function out=wave1d(N,order,plot_solution)
 
 % N = number of grid points
 % order = order of accuracy of difference operators
@@ -15,7 +15,7 @@ function out=wave1d(H,h00,N,order,plot_solution)
 if nargin==1, order = 8; plot_solution = false; end
 if nargin==2, plot_solution = false; end
 
-L = 249.5; % length of domain (km)
+L = 1000; % length of domain (km)
 
 % SBP grid and differentiation matrix
 % D = first derivative
@@ -34,7 +34,11 @@ L = 249.5; % length of domain (km)
 % M.c = wave speed
 
 M.g = 10e-3; % km/s^2
-M.H = H; % water depth (m)
+M.H = linspace(1,7,N+1)'; % water depth (m)
+
+% High-frequency coefficient
+% M.H = 1 + 0.9*sin(50*2*pi*x/L);
+
 M.c = sqrt(M.g*M.H); % wave speed (km/s)
 
 % total simulation time
@@ -66,7 +70,7 @@ Dh = zeros(N+1,1); % dh/dt
 
 % initial conditions
 q0 = zeros(N+1,1);
-h0 = h00;
+h0 = exp(-0.5*((x-L/2)/(0.1*L)).^2);
 
 % fields arrays
 q=q0; h=h0;
@@ -92,6 +96,17 @@ out.x = x;
 
 t = 0; % start at t=0
 
+%=== Setup plot ======
+figure;
+handle_h = plot(x,h,'b-o');
+title(['t = ' num2str(t)])
+ylim([-1 1])
+hold on
+handle_q = plot(x,q,'r-o');
+hold off
+legend({'h','q'})
+%======================
+
 for m=1:nt
 
   t0 = t;
@@ -106,7 +121,7 @@ for m=1:nt
     Dh = RK.A(k)*Dh;
 
     % set rates
-    [Dq_new Dh_new] = RHS(t,q,h,M,D,D,SAT);
+    [Dq_new, Dh_new] = RHS(t,q,h,M,D,D,SAT);
 
     % artificial dissipation
     Cdiss = 0; % set to 0 for no artificial dissipation
@@ -132,10 +147,11 @@ for m=1:nt
   out.h(:,m+1) = h;
 
   if plot_solution
-    if mod(m,1)==0
-      plot(x,h)
-      title(t)
-      drawnow
+    if mod(m,2)==0
+       handle_h.YData = h;
+       handle_q.YData = q;
+       title(['t = ' num2str(t)])
+       drawnow
     end
   else
     if mod(m,100)==0
@@ -146,10 +162,9 @@ for m=1:nt
 end
 
 % return other variables as well
+
 out.M = M;
 out.L = L;
 out.N = N;
 out.dt = dt;
 out.nt = nt;
-
-end
