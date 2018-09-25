@@ -1,9 +1,9 @@
-% using unstaggered grid, and T operator
+% using staggered grid, and T operator
 % for Cascadia
 % solves for true solution of waveform over time given initial wave height
 % and ocean bathymetry
 
-function [u, dt, T] = wave_solve_unstagg(filename, order, graph)
+function [u, dt, T] = wave_solve_stagg(filename, order, graph)
 
 %{
 @param filename: name of parameter file
@@ -61,21 +61,66 @@ t = tmin:dt:tmax;
 nt = length(t);
 
 % true solution u, each column is a time step, stores q and h
-u = zeros(2*nx,nt);
-u((nx+1):2*nx,1) = h0; % initial condition for wave height
+u = zeros(2*nx+1,nt);
+u(nx:2*nx,1) = h0; % initial condition for wave height
 
 %%
-% SBP operators
-[D,Hinv,~,A,~,~,~] = SBPoperatorsRussian(nx-1,dx,order);
-cdiss = 0.25; % artificial dissipation term
-SAT = [M.c(1) M.c(end)]*Hinv; % boundary conditions
+addpath sbplib
+addpath staggered_acoustics_1d
+
+default_arg('m',101);
+default_arg('order',4)
+default_arg('plot_flag',true)
+
+% Parameters
+m = length(x);
+g = M.g;
+xvec = x;
+H = @(x) interp1(xvec,M.H,x);
+c = @(x) interp1(xvec,M.c,x); % wave speed (km/s)
+
+%==== Assemble coefficient matrices with parameters ====
+% This should never change as long as we are 
+% running the shallow water equations!
+A = {@(x) 1./(c(x).^2), @(x)0*x;...
+	 @(x)0*x, @(x) 0*x + 1};
+B = {@(x)0*x, @(x)0*x + 1;...
+	 @(x)0*x + 1, @(x)0*x};
+%=====================================================
+
+% Forcing
+F = [];
+
+% Domain
+xlim = {xmin, xmax};
+
+% Boundary data (empty for homogeneous BC)
+g0 = [];
+gL = []; 
+
+% Create discretization object
+discr = TsunamiDiscretization(m, order, xlim, F, A, B, g0, gL);
+
+% Grid points
+x_primal = discr.diffOp.grid_primal.points();
+x_dual = discr.diffOp.grid_dual.points();
+
+% Initial data
+q0_fun = @(x) 0*x;
+h0_fun = @(x) 0*x;
+discr.v0 = [q0_fun(x_primal); h0_fun(x_dual)];
+
+% Evaluate wave speed
+c_primal = c(x_primal);
+
 [RK,alpha] = rk_init(dt); % initialize RK coefficients
 
-T = compute_T_matrix(nx-1,alpha,M,D,SAT,A,cdiss);
-T = sparse(T);
+D = discr.D;
+T = eye(length(D)) + dt*D + dt^2*D^2/2 + dt^3*D^3/6 + dt^4*D^4/24 + ...
+    RK.B(1)*RK.B(2)*RK.B(3)*RK.B(4)*RK.B(5)*D^5;
 
 % solve for true solution iteratively
-for i = 2:nt
+for i = 2:nt 
     u(:,i) = T*u(:,i-1);
     if graph == 1
         plot(x,u(1+nx:2*nx,i));

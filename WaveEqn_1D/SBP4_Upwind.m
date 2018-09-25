@@ -32,9 +32,9 @@ Qm=-Qp';
 e_1=zeros(m,1);e_1(1)=1;
 e_m=zeros(m,1);e_m(m)=1;
 
-Dp=H\(Qp-1/2*(e_1*e_1')+1/2*(e_m*e_m')) ;
+Dp=H\(Qp-1/2*(e_1*e_1')+1/2*(e_m*e_m'));
 
-Dm=H\(Qm-1/2*(e_1*e_1')+1/2*(e_m*e_m')) ;
+Dm=H\(Qm-1/2*(e_1*e_1')+1/2*(e_m*e_m'));
 
 D1 = 1/2*(Dp+Dm);
 DISS = Dp-Dm;
