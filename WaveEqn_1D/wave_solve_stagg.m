@@ -17,7 +17,7 @@ final plots
 [xmin, xmax, tmin, tmax, dx, CFL, ~, ~, ~, ~] = readParams(filename);
 
 % import water depth data
-irreg = load('yuyun_cascadia.mat');
+irreg = load('cascadia.mat');
 % flip the axis to make coast on the left
 x_irreg = -flipud(irreg.x_SF);
 x_irreg = x_irreg - x_irreg(1);
@@ -64,8 +64,6 @@ nt = length(t);
 u = zeros(2*nx+1,nt);
 
 %%
-addpath sbplib
-addpath ShallowWater_staggered
 % Parameters
 m = length(x);
 xvec = x;
