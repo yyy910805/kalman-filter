@@ -17,7 +17,7 @@ final plots
 [xmin, xmax, tmin, tmax, dx, CFL, ~, ~, ~, ~] = readParams(filename);
 
 % import water depth data
-irreg = load('yuyun_cascadia.mat');
+irreg = load('cascadia.mat');
 % flip the axis to make coast on the left
 x_irreg = -flipud(irreg.x_SF);
 x_irreg = x_irreg - x_irreg(1);

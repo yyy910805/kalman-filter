@@ -5,6 +5,6 @@ tmax = 3000
 dx = 0.5
 CFL = 0.5
 Ld = 20
-xsd = 0.1
+xsd = 0.15
 esd = 0.05
 freq = 30

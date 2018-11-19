@@ -8,7 +8,7 @@ analyzes the result in terms of:
 
 %% get outputs
 order = 4;
-assim_step = 10; % assimilate observations every x time steps
+assim_step = 2; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
 out = enkf_cascadia('params.txt',order,assim_step,fcst_step);
 

@@ -9,9 +9,12 @@ and optimal interpolation, does comparison
 %}
 
 %% get outputs
+addpath WaveEqn_1D
+addpath 'EnKF vs OptInterp'
 
+clear; clc; close all;
 order = 4;
-assim_step = 2; % assimilate observations every x time steps
+assim_step = 10; % assimilate observations every x time steps
 fcst_step = 20; % forecast every x time steps
 out1 = enkf_cascadia('params.txt',order,assim_step,fcst_step);
 out2 = optinterp_cascadia('params.txt',order,assim_step,fcst_step);
@@ -46,10 +49,10 @@ pred2 = zeros(fcst_runs,2);
 for i = 1:fcst_runs
     [val,idx] = max(all_res1(1,:,i));
     pred1(i,1) = val;
-    pred1(i,2) = idx;
+    pred1(i,2) = t(idx);
     [val,idx] = max(all_res2(1,:,i));
     pred2(i,1) = val;
-    pred2(i,2) = idx;
+    pred2(i,2) = t(idx);
 end
 
 %% plot prediction over runs
@@ -61,28 +64,27 @@ plot(ax, pred1(1:arrival_run,1), ax, pred2(1:arrival_run,1))
 ylim([0 3.5])
 hold on
 plot([1,arrival_run]*dt*fcst_step,[real_fcst(1),real_fcst(1)],'--')
-legend('Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height','Location','Best')
+legend({'Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height'},'Location','Best','FontSize',12)
 xlabel('Time (s)')
 ylabel('Wave Height (m)')
 hold off
 
 figure(2)
 plot(ax, pred1(1:arrival_run,2), ax, pred2(1:arrival_run,2))
-ylim([0 1500])
+ylim([0 2000])
 hold on
 plot([1,arrival_run]*dt*fcst_step,[real_fcst(2),real_fcst(2)],'--')
-legend('Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height Arrival Time','Location','Best')
+legend({'Ensemble Kalman Filter','Optimal Interpolation','True Maximum Wave Height Arrival Time'},'Location','Best','FontSize',12)
 xlabel('Time (s)')
 ylabel('Maximum Wave Height Arrival Time (s)')
 hold off
 
 %% plot accuracy indicators over runs
 % true vs assimilated waveform before each forecast
-% over the entire grid, or at observation stations
+% over the entire grid
 K1 = zeros(1,fcst_runs);
 K2 = zeros(1,fcst_runs);
 N = nx;  % over the entire grid
-%N = length(obs);  % at observation stations
 
 for i = 1:fcst_runs
     s1 = 0;
@@ -113,7 +115,7 @@ hold on
 plot(ax, K2, '-*','MarkerSize',4)
 xlabel('Time (s)')
 ylabel('Accuracy across Grid (%)')
-legend('Ensemble Kalman Filter','Optimal Interpolation','Location','Best')
+legend({'Ensemble Kalman Filter','Optimal Interpolation'},'Location','Best', 'FontSize',12)
 ylim([0 1])
 % Convert y-axis values to percentage values
 a = cellstr(num2str(get(gca,'ytick')'*100)); 
@@ -151,7 +153,7 @@ hold on
 plot(ax, K2, '-*','MarkerSize',4)
 xlabel('Time (s)')
 ylabel('Accuracy at Coast (%)')
-legend('Ensemble Kalman Filter','Optimal Interpolation')
+legend({'Ensemble Kalman Filter','Optimal Interpolation'},'Location','Best','FontSize',12)
 ylim([0 1])
 a = cellstr(num2str(get(gca,'ytick')'*100)); 
 pct = char(ones(size(a,1),1)*'%'); 
@@ -159,7 +161,7 @@ new_yticks = [char(a),pct];
 set(gca,'yticklabel',new_yticks)
 
 %% plot waveform at the fth forecast
-f = 15;
+f = 20;
 [nx,nt,runs] = size(all_res1);
 step = nt/(runs + 1);
 enkf = all_res1(:,:,f);
@@ -171,10 +173,13 @@ set(p1,'LineStyle','none');
 cmap();
 xlabel('Distance from Coast (km)');
 ylabel('Time (s)');
-colorbar
+c = colorbar;
+c.Label.String = 'Wave Height (m)';
 caxis([-3 3])
 hold on
 plot([x(1),x(end)],[f*dt*fcst_step,f*dt*fcst_step],'k--')
+hold on
+plot(x(obs),0*ones(length(obs)),'x', 'MarkerEdgeColor','k')
 hold off
 
 figure(6)
@@ -183,10 +188,13 @@ set(p2,'LineStyle','none');
 cmap();
 xlabel('Distance from Coast (km)');
 ylabel('Time (s)');
-colorbar
+c = colorbar;
+c.Label.String = 'Wave Height (m)';
 caxis([-3 3])
 hold on
 plot([x(1),x(end)],[f*dt*fcst_step,f*dt*fcst_step],'k--')
+hold on
+plot(x(obs),0*ones(length(obs)),'x','MarkerEdgeColor','k')
 hold off
 
 %% plot standard deviation evolution
@@ -207,8 +215,21 @@ hold on
 plot(x,stdev(t4,:))
 hold on
 plot(x,stdev(t5,:))
+hold on
+plot(x(obs),0*ones(length(obs)),'x', 'MarkerEdgeColor','k')
 legend([num2str(ts(1)) 's'],[num2str(ts(2)) 's'],[num2str(ts(3)) 's'],...
        [num2str(ts(4)) 's'],[num2str(ts(5)) 's'])
 xlabel('Distance from Coast (km)')
 ylabel('Standard Deviation (m)')
 hold off
+
+%% plot true waveform
+% figure(8)
+% p = pcolor(x,t,h');
+% set(p,'LineStyle','none');
+% cmap();
+% xlabel('Distance from Coast (km)');
+% ylabel('Time (s)');
+% c = colorbar;
+% c.Label.String = 'Wave Height (m)';
+% caxis([-3 3])
